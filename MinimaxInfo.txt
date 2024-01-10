@@ -1,0 +1,83 @@
+Funktionsweise:
+
+
+SBox in 0x111111 laden
+Key in 0x222222 laden
+Verschlüsselte Datei in 0x333333 laden
+-> Start
+
+
+
+Speicher:
+
+
+dauerhaft:
+"SBox" = 111111
+"Key" = 222222
+"text" = 333333
+
+während Schleife:
+"i" = 000000
+"j" = 000001
+
+(a) = 000002 S[i]
+(b) = 000003 key[..]; später S[j]
+(g) = 000004 S[j]-Bytestream save
+(c) = 000005 Shift jBS
+(d) = 000006 Shifts iBS
+(e) = 000008 S[i]-Bytestream
+(f) = 000009 S[j]-Bytestream
+(h) = 000010 x
+(n) = 000012 bool für swap
+(k) = 000032 Shift K S[]
+(l) = 000033 K
+(m) = 000034 z shift
+
+Speicherstellen zum Exportieren:
+333333 bis 333FEE
+
+
+
+Abläufe:
+
+
+Berechnen der Shifts: z.B. für S[i]
+(i mod 4) * 8
+weil i mod 4 Stelle im Bytestream angibt und *8, da 8 bit = 1 Byte
+
+Berechnung der Speicheradresse: z.B. für S[i]
+(i/4) + [Adresse der SBox]
+Findet den richtigen Bytestream, da 4 Byte pro Bytestream
+Adresse der SBox = 0x111111
+
+Lesen eines Bits: 
+- nötige Shifts berechnen und zwischenspeichern
+- Adresse des Bytestreams ausrechnen, 
+- Bytestream lesen, 
+- Bytestream nach rechts shiften (um ausgerechnete Bits) 
+- Bitmaske (255 = 11111111) mit & verwenden, sodass Bytestream so aussieht: 
+	00000000 00000000 00000000 XXXXXXXX
+  mit XXXXXXXX = Bit, das gelesen werden soll
+
+Schreiben eines Bits: z.B. S[i] in S[j]
+- S[i] lesen wie gewohnt
+- Shifts für S[j] berechnen wie gewohnt
+- S[j]-Adresse ausrechnen
+- S[j]-Bytestream lesen
+- mit Shifts/8 bzw. j mod 4 richtige Maske finden (Adresse für Maske: j mod 4 + 1 + 0x222222)
+- Maske mit & auf S[j]-Bytestream anwenden (somit wird Byte, das verändert werden soll, genullt)
+- S[i]-bit um die j-Shifts nach links verschieben
+- Ergebnis davon mit dem genullten Bytestream verodern und zwischenspeichern (meist in MASK)
+- S[j]-Adresse erneut ausrechnen
+- MASK in ausgerechneter Adresse speichern
+
+Swappen von Bits:
+funktioniert wie lesen/schreiben von Bits, aber:
+- S[i] Bytestream wird gelesen
+- S[i] Bit wird berechnet
+- S[j] Bytestream wird gelesen*
+- S[j] Bytestream wird mit richtiger Maske genullt und mit S[i] Bit verändert (wie "Schreiben eines Bits")
+- S[i] Bytestream wird erneut gelesen (Falls S[i] Bytestream = S[j] Bytestream)
+- S[j] Bytestream wird gelesen (der vorher zwischengespeicherte*)
+- S[j] Bit wird ausgerechnet
+- S[j] Bit wird in S[i] Bytestream geschrieben (wie zuvor, nur andersherum) und gespeichert
